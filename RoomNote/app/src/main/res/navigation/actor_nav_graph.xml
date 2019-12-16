@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/actor_navigation"
+    app:startDestination="@id/roomListFragment">
+
+    <fragment
+        android:id="@+id/roomListFragment"
+        android:name="com.example.roomnote.ui.roomlist.RoomListFragment"
+        android:label="roomlist_fragment"
+        tools:layout="@layout/roomlist_fragment" >
+        <action
+            android:id="@+id/action_roomListFragment_to_addRoomFragment"
+            app:destination="@id/addRoomFragment" />
+        <action
+            android:id="@+id/action_roomListFragment_to_chattingFragment"
+            app:destination="@id/chattingFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/addRoomFragment"
+        android:name="com.example.roomnote.ui.addroom.AddRoomFragment"
+        android:label="addroom_fragment"
+        tools:layout="@layout/addroom_fragment" >
+        <action
+            android:id="@+id/action_addRoomFragment_to_chattingFragment"
+            app:destination="@id/chattingFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/chattingFragment"
+        android:name="com.example.roomnote.ui.chattingFragment.ChattingFragment"
+        android:label="chatting_fragment"
+        tools:layout="@layout/chatting_fragment" >
+        <argument
+            android:name="roomId"
+            app:argType="integer"/>
+        <argument
+            android:name="title"
+            app:argType="string" />
+        <argument
+            android:name="nickname"
+            app:argType="string" />
+    </fragment>
+</navigation>

@@ -1,0 +1,14 @@
+{
+  "name": "roomnoteserver",
+  "version": "1.0.0",
+  "description": "Roomnote Server",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "socket.io": "^2.3.0"
+  }
+}

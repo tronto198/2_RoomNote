@@ -1,0 +1,7 @@
+{
+  "user":"roomnote",
+  "host":"127.0.0.1",
+  "database":"roomnote",
+  "password":"roomnote",
+  "port": 5432
+}
