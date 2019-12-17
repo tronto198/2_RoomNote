@@ -1,13 +1,17 @@
 package com.example.roomnote.ui.addroom;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Adapter;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -25,12 +29,17 @@ import com.example.roomnote.ui.roomlist.RoomListViewModel;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.security.MessageDigest;
+
+import static android.content.Context.MODE_PRIVATE;
+
 public class AddRoomFragment extends Fragment {
     private AddRoomViewModel mViewModel;
 
     EditText et_RoomTitle;
     EditText et_RoomPassword;
     EditText et_NickName;
+    Spinner spinner;
     HttpConnecter httpConnecter;
 
     public static AddRoomFragment newInstance() {
@@ -55,6 +64,11 @@ public class AddRoomFragment extends Fragment {
         et_RoomTitle = getView().findViewById(R.id.addroom_roomtitle);
         et_RoomPassword = getView().findViewById(R.id.addroom_roompassword);
         et_NickName = getView().findViewById(R.id.addroom_nickname);
+        spinner = getView().findViewById(R.id.spinner);
+
+
+        //Adapter spAdapter = new ArrayAdapter(this, android.R.layout.simple_spinner_dropdown_item, );
+
 
         Button bt_JoinRoom = getView().findViewById(R.id.addroom_roomenter);
         Button bt_CreateRoom = getView().findViewById(R.id.addroom_roomcreate);
@@ -88,6 +102,23 @@ public class AddRoomFragment extends Fragment {
             }
         });
 
+        bt_JoinRoom.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                try{
+                    int id = Integer.valueOf(et_RoomTitle.getText().toString());
+                    SharedPreferences pref = getActivity().getSharedPreferences("save", MODE_PRIVATE);
+                    pref.edit().putInt("id", id).apply();
+                    Toast.makeText(getActivity(), "id : " + id + "로 로그인됨", Toast.LENGTH_SHORT).show();
+
+                }
+                catch (Exception e){
+
+                }
+                return true;
+            }
+        });
+
         bt_CreateRoom.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -116,15 +147,48 @@ public class AddRoomFragment extends Fragment {
                 });
             }
         });
+
+        bt_CreateRoom.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View view) {
+                try{
+                    SharedPreferences pref = getActivity().getSharedPreferences("save", MODE_PRIVATE);
+                    pref.edit().remove("id").apply();
+                    Toast.makeText(getActivity(), "저장된 아이디 삭제됨", Toast.LENGTH_SHORT).show();
+                }
+                catch (Exception e){
+
+                }
+                return true;
+            }
+        });
     }
 
+    //editText로부터 정보 가져오기
     JSONObject getInfo(){
         InputMethodManager imm = (InputMethodManager) getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
         imm.hideSoftInputFromWindow(et_NickName.getWindowToken(), 0);
         int id = ApplicationSharedRepository.getId();
         String RoomTitle = et_RoomTitle.getText().toString();
         String Passwd = et_RoomPassword.getText().toString();
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hast = digest.digest(Passwd.getBytes("utf-8"));
+            StringBuffer hexString = new StringBuffer();
+
+            for(int i =0; i< hast.length; i++){
+                String hex = Integer.toHexString(0xff & hast[i]);
+                if(hex.length() == 1) hexString.append('0');
+                hexString.append(hex);
+            }
+            Passwd = hexString.toString();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
         String Nickname = et_NickName.getText().toString();
+        int limit = 10 * (spinner.getSelectedItemPosition() + 1);
 
         JSONObject json = new JSONObject();
         try{
@@ -132,13 +196,14 @@ public class AddRoomFragment extends Fragment {
             json.put("title", RoomTitle);
             json.put("password", Passwd);
             json.put("nickname", Nickname);
+            json.put("limit", limit);
         }
         catch (Exception e){
             e.printStackTrace();
         }
         return json;
     }
-
+    //방에 들어가기 (navigate)
     void joinRoom(int roomId, String roomTitle, String nickname){
         RoomListViewModel roomListViewModel = ViewModelProviders.of(getActivity()).get(RoomListViewModel.class);
         roomListViewModel.addRoom(roomId, roomTitle, nickname, false);
@@ -146,7 +211,6 @@ public class AddRoomFragment extends Fragment {
         AddRoomFragmentDirections.ActionAddRoomFragmentToChattingFragment action =
                 AddRoomFragmentDirections.actionAddRoomFragmentToChattingFragment(
                         roomId, roomTitle, nickname);
-        //action.setRoomId(roomId);
         navController.navigate(action);
     }
 }

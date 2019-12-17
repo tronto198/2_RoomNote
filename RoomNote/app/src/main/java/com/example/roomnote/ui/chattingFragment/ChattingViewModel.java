@@ -19,7 +19,6 @@ import io.socket.client.Socket;
 
 public class ChattingViewModel extends ViewModel {
     // TODO: Implement the ViewModel
-    Socket socket;
 
     Map<Integer, String> nicknameMap = new HashMap<>();
     List<ChattingItem> chattingList;
@@ -46,6 +45,27 @@ public class ChattingViewModel extends ViewModel {
         catch (Exception e){
             e.printStackTrace();
         }
+    }
+
+    public void addFrontChatting(JSONObject json){
+        try{
+            int userId = json.getInt("user_id");
+            String nickname = nicknameMap.get(userId);
+            String contents = json.getString("contents");
+            SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+            Date chattime = format.parse(json.getString("chat_time").substring(0,20));
+
+            if(userId == ApplicationSharedRepository.getId()){
+                chattingList.add(0, new MyChattingItem(nickname, contents, chattime));
+            }
+            else{
+                chattingList.add(0, new OtherChattingItem(nickname, contents, chattime));
+            }
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
+
     }
 
     public void addUserinRoom(JSONObject json){

@@ -10,6 +10,8 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.os.Handler;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -33,7 +35,8 @@ public class ChattingFragment extends Fragment {
 
     private ChattingViewModel mViewModel;
     RecyclerAdapter adapter;
-    Socket msocket, chatSocket;
+    RecyclerView rv;
+    Socket msocket;//, chatSocket;
     int roomId;
     int chatpointer = 0;
 
@@ -57,7 +60,7 @@ public class ChattingFragment extends Fragment {
         String title = args.getTitle();
         String nickname = args.getNickname();
 
-        RecyclerView rv = getView().findViewById(R.id.chat_chattingList);
+        rv = getView().findViewById(R.id.chat_chattingList);
         rv.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, true));
         adapter = new RecyclerAdapter();
         rv.setAdapter(adapter);
@@ -83,7 +86,7 @@ public class ChattingFragment extends Fragment {
         SocketBuild();
     }
 
-
+    //소켓 on, emit 지정 후 연결
     void SocketBuild(){
         //emit configure
         //emit load
@@ -94,9 +97,7 @@ public class ChattingFragment extends Fragment {
 
         try {
             msocket = IO.socket("http://13.125.224.21:55252");
-            chatSocket = IO.socket("http://13.125.224.21:55252/chat/" + roomId);
-            msocket.connect();
-            chatSocket.connect();
+            //chatSocket = IO.socket("http://13.125.224.21:55252/chat/" + roomId);
             msocket.on("userlist", new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
@@ -122,17 +123,29 @@ public class ChattingFragment extends Fragment {
                     JSONObject data = (JSONObject) args[0];
                     try{
                         JSONArray chatlist = data.getJSONArray("chatList");
-                        chatpointer += chatlist.length();
-                        for(int i = 0; i < chatlist.length(); i++){
+                        final int length = chatlist.length();
+                        for(int i = length - 1; i >= 0; i--){
                             mViewModel.addChatting(chatlist.getJSONObject(i));
                         }
                         getActivity().runOnUiThread(new Runnable() {
                             @Override
                             public void run() {
-                                adapter.notifyDataSetChanged();
+                                if(adapter.getItemCount() < 3){
+                                    adapter.notifyDataSetChanged();
+                                }
+                                else{
+                                    adapter.notifyItemInserted(chatpointer);
+                                }
+
+                                new Handler().postDelayed(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        rv.scrollToPosition(chatpointer);
+                                        chatpointer += length;
+                                    }
+                                },200);
                             }
                         });
-                        //adapter.notifyDataSetChanged();
                     }
                     catch (Exception e){
                         e.printStackTrace();
@@ -140,19 +153,31 @@ public class ChattingFragment extends Fragment {
                 }
             });
 
-            chatSocket.on("chat", new Emitter.Listener() {
+            msocket.on("chatted", new Emitter.Listener() {
                 @Override
                 public void call(Object... args) {
 //                    Toast.makeText(getActivity(), "chat", Toast.LENGTH_SHORT).show();
+                    Log.d("hj", "call: chatting received");
                     JSONObject data = (JSONObject) args[0];
-                    mViewModel.addChatting(data);
+                    mViewModel.addFrontChatting(data);
                     getActivity().runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            adapter.notifyDataSetChanged();
+                            // TODO: 2019-12-16 첫번째 채팅이 보이지 않아
+                            if(adapter.getItemCount() < 3){
+                                adapter.notifyDataSetChanged();
+                            }
+                            else{
+                                adapter.notifyItemInserted(0);
+                            }
+                            new Handler().postDelayed(new Runnable() {
+                                @Override
+                                public void run() {
+                                    chatpointer++;
+                                }
+                            },200);
                         }
                     });
-                    chatpointer++;
                 }
             });
 
@@ -165,17 +190,9 @@ public class ChattingFragment extends Fragment {
                             Toast.makeText(getActivity(), "error", Toast.LENGTH_SHORT).show();
                         }
                     });
-//                    Toast.makeText(getActivity(), "error", Toast.LENGTH_SHORT).show();
-//                    JSONObject data = (JSONObject) args[0];
-//                    try{
-//                        String des = data.getString("description");
-//                        Toast.makeText(getActivity(), "error: " + des, Toast.LENGTH_SHORT).show();
-//                    }
-//                    catch (Exception e){
-//                        e.printStackTrace();
-//                    }
                 }
             });
+            msocket.connect();
             Toast.makeText(getActivity(), "소켓 연결됨", Toast.LENGTH_SHORT).show();
             Configure();
         }
@@ -183,7 +200,7 @@ public class ChattingFragment extends Fragment {
             e.printStackTrace();
         }
     }
-
+    //서버와 통신하여 설정
     void Configure(){
         try{
             JSONObject json = new JSONObject();
@@ -197,25 +214,29 @@ public class ChattingFragment extends Fragment {
             Toast.makeText(getActivity(), "error", Toast.LENGTH_SHORT).show();
         }
     }
+    //채팅내역 로드
     void Load(){
         try{
             JSONObject json = new JSONObject();
             json.put("roomId", roomId);
             json.put("loadNo", chatpointer);
             msocket.emit("load", json);
+
         }
         catch (Exception e){
             e.printStackTrace();
             Toast.makeText(getActivity(), "error", Toast.LENGTH_SHORT).show();
         }
     }
+    //채팅
     void Chatted(String chat){
         try{
-            JSONObject json = new JSONObject();
-            json.put("roomId", roomId);
-            json.put("userId", ApplicationSharedRepository.getId());
-            json.put("contents", chat);
-            msocket.emit("chat", json);
+                JSONObject json = new JSONObject();
+                json.put("roomId", roomId);
+                json.put("userId", ApplicationSharedRepository.getId());
+                json.put("contents", chat);
+                msocket.emit("chatting", json);
+
         }
         catch (Exception e){
             e.printStackTrace();
@@ -228,6 +249,5 @@ public class ChattingFragment extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         msocket.disconnect();
-        chatSocket.disconnect();
     }
 }

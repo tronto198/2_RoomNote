@@ -41,4 +41,7 @@ public class ChatRoomItem extends RecyclerItem {
     public String getMyNickname(){
         return myNickname;
     }
+    public boolean getNotify(){
+        return notify;
+    }
 }

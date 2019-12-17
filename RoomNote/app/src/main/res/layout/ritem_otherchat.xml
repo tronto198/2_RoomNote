@@ -10,18 +10,39 @@
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:orientation="vertical"
+    android:layout_margin="5dp"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
+
+    <TextView
+        android:id="@+id/otherchat_nickname"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@{model.nickname}"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        />
 
     <TextView
         android:id="@+id/other_chat"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/otherchat_nickname"
         android:background="@drawable/round_border"
-        android:padding="10dp"
+        android:padding="8dp"
         android:text="@{model.chat}"
+        />
+<!--    app:layout_constraintEnd_toStartOf="@id/otherchat_chattingtime"-->
+
+    <TextView
+        android:layout_marginEnd="10dp"
+        app:layout_constraintStart_toEndOf="@id/other_chat"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:id="@+id/otherchat_chattingtime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@{model.date}"
         />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

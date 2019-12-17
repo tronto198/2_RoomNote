@@ -73,10 +73,21 @@ app:layout_constraintVertical_bias="0.24000001" -->
         android:layout_height="wrap_content"
         android:layout_width="250dp"
         app:layout_constraintTop_toBottomOf="@id/addroom_roompassword"
-        app:layout_constraintBottom_toTopOf="@id/addroom_roomenter"
+        app:layout_constraintBottom_toTopOf="@id/spinner"
         app:layout_constraintStart_toEndOf="@id/addroom_tvnickname"
         app:layout_constraintEnd_toEndOf="parent"
         />
+
+
+    <Spinner
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/addroom_nickname"
+        app:layout_constraintBottom_toTopOf="@id/addroom_roomenter"
+        android:id="@+id/spinner"
+        android:layout_width="100dp"
+        android:layout_height="wrap_content"
+        android:entries="@array/limit_array"/>
 
 
     <Button
@@ -84,7 +95,7 @@ app:layout_constraintVertical_bias="0.24000001" -->
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Enter"
-        app:layout_constraintTop_toBottomOf="@id/addroom_nickname"
+        app:layout_constraintTop_toBottomOf="@id/spinner"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintBottom_toTopOf="@id/addroom_roomcreate"
@@ -100,5 +111,6 @@ app:layout_constraintVertical_bias="0.24000001" -->
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

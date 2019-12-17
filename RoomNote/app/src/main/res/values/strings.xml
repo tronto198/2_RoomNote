@@ -3,4 +3,6 @@
 
     <string name="server_ip">13.125.224.21</string>
     <string name="server_port">55252</string>
+
+
 </resources>

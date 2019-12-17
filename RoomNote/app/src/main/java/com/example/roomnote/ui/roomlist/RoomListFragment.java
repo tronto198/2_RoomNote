@@ -95,7 +95,7 @@ public class RoomListFragment extends Fragment {
 
     }
 
-
+    //첫 접속
     void FirstConnect(final SharedPreferences pref){
         httpConnecter.Get("/FirstConnect", null, new HttpConnecter.ResponseRecivedCallback() {
             @Override
@@ -127,7 +127,7 @@ public class RoomListFragment extends Fragment {
         });
     }
 
-
+    //접속
     void autoLogin(final int id){
         JSONObject json = new JSONObject();
         try {

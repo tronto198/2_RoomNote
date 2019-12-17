@@ -23,12 +23,17 @@ function sendError(res, json){
   res.send(JSON.stringify(json));
 }
 
+setInterval(()=>{
+  db.query('delete from roomtable where limit_time < now()');
+  console.log('deleted');
+}, 60000);
+
 app.use(bodyParser.json({limit: '10mb', extended : true}));
 //첫 접속
 app.get('/FirstConnect', (req, res) =>{
   //토큰 새로 만들기
   //토큰 전송
-  console.log('first connect');
+
   let query = 'insert into usertable values(default) returning user_id';
   db.query(query).then((data) =>{
     let id = data.rows[0].user_id;
@@ -46,7 +51,7 @@ app.post('/Connect', (req, res) =>{
   //아이디 받기
   //룸 리스트 주기
   //룸 정보 : id, title, myNickname, nofity
-  console.log(req.body); //왜 undefined
+
   let id = req.body.id;
   console.log(`connect ${id}`);
   let query = `select user_room.room_id as room_id,
@@ -68,7 +73,7 @@ app.post('/Connect', (req, res) =>{
     };
     sendResult(res, result);
   }).catch(e =>{
-    console.log(e);
+    // console.log(e);
     sendError(res, {description: '알 수 없는 이유'});
   });
 });
@@ -81,6 +86,7 @@ app.post('/CreateRoom', (req, res)=>{
   let roomTitle = body.title;
   let roomPasswd = body.password;
   let nickname = body.nickname;
+  let limitTime = body.limit;
 
   //title이 이미 쓰고 있는지
   //password, nickname으로 방하고 user_room 만들기
@@ -91,11 +97,12 @@ app.post('/CreateRoom', (req, res)=>{
   db.query(findRoomQuery, findRoomValue).then(r=>{
     if(r.rows[0] == null){
       db.query('BEGIN');
-      let makeRoomQuery = `insert into roomtable values(default, $1, $2, now()) returning room_id`;
+      console.log(`limit = ${limitTime}`);
+      let makeRoomQuery = `insert into roomtable values(default, $1, $2, now(), now() + '${limitTime} min') returning room_id`;
       let makeRoomValue = [roomTitle, roomPasswd];
       db.query(makeRoomQuery, makeRoomValue).then(roomResult =>{
         let roomId = roomResult.rows[0].room_id;
-        let makeRelationQuery = `insert into user_room values($1, $2, $3, now())`;
+        let makeRelationQuery = `insert into user_room values($1, $2, $3, now()) returning room_id`;
         let makeRelationValue = [userId, roomId, nickname];
         db.query(makeRelationQuery, makeRelationValue).then(relResult =>{
           db.query('COMMIT');
@@ -105,7 +112,7 @@ app.post('/CreateRoom', (req, res)=>{
             nickname: nickname
           };
           sendResult(res, result);
-          console.log(`created room : ${roomTitle}`);
+          console.log(`created room : ${roomTitle}, ${relResult.rows[0].room_id}`);
         });
       });
     }
@@ -114,6 +121,7 @@ app.post('/CreateRoom', (req, res)=>{
     }
   }).catch(e=>{
     db.query('ROLLBACK');
+    // console.log(e);
     sendError(res, {description: '알수없는 이유'});
   });
 });
@@ -130,7 +138,7 @@ app.post('/JoinRoom', (req, res)=>{
   //password가 맞는지
   //다 만족하면 user_room 만들기
 
-  let findRoomQuery = `select room_id, passwd = $1 as isvalid from roomtable where room_title = $2`;
+  let findRoomQuery = `select room_id, room_passwd = $1 as isvalid from roomtable where room_title = $2`;
   let findRoomValue = [roomPasswd, roomTitle];
   db.query(findRoomQuery, findRoomValue).then(r=>{
     //row가 없으면 맞는 아이디가 없는것
@@ -142,13 +150,14 @@ app.post('/JoinRoom', (req, res)=>{
         //방 정보 보내기
         //정보 : roomid, title, nickname
         let result = {
-          roomId: r2.rows[0].room_id,
+          roomId: r.rows[0].room_id,
           roomTitle: roomTitle,
           nickname: nickname
         };
         sendResult(res, result);
         console.log(`joined room : ${roomTitle}`);
       }).catch(e=>{
+        // console.log(e);
         sendError(res, {description: '이미 방에 있습니다.'});
       });
     }
@@ -157,6 +166,7 @@ app.post('/JoinRoom', (req, res)=>{
     }
 
   }).catch(e=>{
+    // console.log(e);
     let result = {
       description: '맞는 방이 없습니다.'
     };
@@ -167,37 +177,42 @@ app.post('/JoinRoom', (req, res)=>{
 
 //여기부터 소켓
 io.sockets.on('connection', (socket)=>{
-  console.log('connected someone');
+  console.log('connected');
   //연결 종료
   socket.on('disconnect', () =>{
-    let userId = socket.user_id;
+    let userId = socket.userId;
     let query = `update user_room set last_fetch_date = now() where user_id = $1`;
     let values = [userId];
     db.query(query, values).catch(e=>{
       console.log(e);
     });
+
+    let roomId = socket.roomId;
+    socket.leave(`${roomId}`);
     console.log('disconnected');
   });
 
 
-  //chat.on('connection', (socket) =>{
-
     //모든 유저 리스트
     //채팅 리스트
     //보내기
-  const chat = io.of('/chat');
+
     //유저 리스트
     socket.on('configure', (data)=>{
-      let userId = data.userId;
-      socket.user_id = userId;
       console.log('configure');
+      let userId = data.userId;
       let roomId = data.roomId;
+      socket.userId = userId;
+      socket.roomId = roomId;
+      socket.join(`${roomId}`);
+
       let userListQuery = `select user_id, user_nickname from user_room where room_id = $1`;
       let values = [roomId];
       db.query(userListQuery, values).then(r=>{
         let userlist = {
           userList: r.rows
         };
+        userlist.userList.push({user_id: 0, user_nickname: server});
         socket.emit('userlist', userlist);
       }).catch(e=>{
         console.log(e);
@@ -223,10 +238,9 @@ io.sockets.on('connection', (socket)=>{
         socket.emit('error', {description: "알수 없는 이유(채팅 불러오기 실패)"});
       });
     });
-    //socket.emit('configure', 'null');
 
     //채팅
-    socket.on('chat', (data) =>{
+    socket.on('chatting', (data) =>{
       console.log('chat');
       let userId = data.userId;
       let roomId = data.roomId;
@@ -237,12 +251,12 @@ io.sockets.on('connection', (socket)=>{
 
       db.query(query, values).then(r=>{
         let chat_time = r.rows[0].chat_time;
-        console.log(`room: ${roomId}, ${userId}: ${contents} at ${chat_time}`);
-        io.of(`/chat/${roomId}`).emit('chat', {user_id: userId, contents: contents, chat_time: r.rows[0].chat_time});
-
+        console.log(`/chat/${roomId}, room: ${roomId}, ${userId}: ${contents} at ${chat_time}`);
+        //io.of(`/chat/${roomId}`).emit('chatted', {user_id: userId, contents: contents, chat_time: r.rows[0].chat_time});
+        io.sockets.in(`${roomId}`).emit('chatted', {user_id: userId, contents: contents, chat_time: r.rows[0].chat_time});
       }).catch(e=>{
         console.log(e);
-        socket.emit('error', {description: "알수 없는 이유(채팅 불러오기 실패)"});
+        socket.emit('error', {description: "알수 없는 이유(채팅 실패)"});
       });
 
     });

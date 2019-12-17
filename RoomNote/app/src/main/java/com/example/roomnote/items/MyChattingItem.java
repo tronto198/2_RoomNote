@@ -2,7 +2,10 @@ package com.example.roomnote.items;
 
 import android.widget.TextView;
 
+import androidx.databinding.DataBindingUtil;
+
 import com.example.roomnote.R;
+import com.example.roomnote.databinding.RitemMychatBinding;
 import com.example.roomnote.recyclervIewmodule.RecyclerAdapter;
 
 import java.util.Date;
@@ -20,7 +23,9 @@ public class MyChattingItem extends ChattingItem {
 
     @Override
     public void onBind(RecyclerAdapter.ViewHolder holder) {
-        TextView tv = holder.itemView.findViewById(R.id.my_chat);
-        tv.setText(chat);
+//        TextView tv = holder.itemView.findViewById(R.id.my_chat);
+//        tv.setText(chat);
+        RitemMychatBinding binding = DataBindingUtil.bind(holder.itemView);
+        binding.setModel(this);
     }
 }

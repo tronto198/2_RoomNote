@@ -74,6 +74,9 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.ViewHo
     public void add(RecyclerItem item){
         itemList.add(item);
     }
+    public void addFront(RecyclerItem item){
+        itemList.add(0, item);
+    }
 
     public void setOnItemClickListener(OnItemClickListener listener){
         this.mItemClickListener = listener;
